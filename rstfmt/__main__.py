@@ -15,7 +15,11 @@ STDIN = "-"
 def do_file(args, fn, misformatted):
     cm = cast(ContextManager[TextIO], nullcontext(sys.stdin) if fn == STDIN else open(fn))
     with cm as f:
-        inp = f.read()
+        try:
+            inp = f.read()
+        except Exception as e:
+            print(f"Error reading {fn}: {e}", file=sys.stderr)
+            return
     doc = rstfmt.parse_string(inp, ignore_errors=args.ignore_rst_errors)
 
     if args.verbose:
