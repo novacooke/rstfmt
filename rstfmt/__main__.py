@@ -82,6 +82,10 @@ def main() -> None:
     rst_extras.register()
 
     misformatted = []
+    
+    # if no paths are given and no stdin then use current directory to prevent hung state
+    if not args.paths and sys.stdin.isatty():
+        args.paths = [os.getcwd()]
 
     for path in args.paths or [STDIN]:
         if os.path.isdir(path):

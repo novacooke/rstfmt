@@ -278,7 +278,20 @@ class IgnoreMessagesReporter(docutils.utils.Reporter):
         orig_level = self.halt_level  # type: ignore
         if message in self.ignored_messages:
             self.halt_level = docutils.utils.Reporter.SEVERE_LEVEL + 1
-        msg = super().system_message(level, message, *children, **kwargs)
+        try:
+            msg = super().system_message(level, message, *children, **kwargs)
+        except Exception as e:
+            print(f"Error in system_message: {e}")
+            self.halt_level = docutils.utils.Reporter.SEVERE_LEVEL + 1
+            # Create a basic system message since the original one failed
+            msg = docutils.nodes.system_message(
+                message=f"Error processing message: {e}",
+                level=level,
+                type=self.levels[level],
+                source=kwargs.get('source'),
+                line=kwargs.get('line')
+            )
+            
         self.halt_level = orig_level
         return msg
 
@@ -726,6 +739,11 @@ class Formatters:
         assert first.startswith(".. ")
         yield f".. |{name}| " + first[3:]
         yield from lines
+
+    @staticmethod
+    def problematic(node: docutils.nodes.problematic, ctx: FormatContext) -> inline_iterator:
+        """Handle problematic nodes by simply returning their content."""
+        yield from chain(fmt_children(node, ctx))
 
 
 def fmt(node: docutils.nodes.Node, ctx: FormatContext) -> Iterator[str]:
