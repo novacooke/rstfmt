@@ -16,7 +16,7 @@ def do_file(args, fn, misformatted):
     cm = cast(ContextManager[TextIO], nullcontext(sys.stdin) if fn == STDIN else open(fn))
     with cm as f:
         inp = f.read()
-    doc = rstfmt.parse_string(inp)
+    doc = rstfmt.parse_string(inp, ignore_errors=args.ignore_rst_errors)
 
     if args.verbose:
         print("=" * 60, fn, file=sys.stderr)
@@ -70,6 +70,9 @@ def main() -> None:
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="[internal] print extra debugging information"
+    )
+    parser.add_argument(
+        "--ignore-rst-errors", action="store_true", help="continue processing even if RST parsing encounters errors"
     )
     parser.add_argument("paths", nargs="*", help="files/directories to run on", metavar="path")
 

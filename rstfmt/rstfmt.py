@@ -272,6 +272,10 @@ class IgnoreMessagesReporter(docutils.utils.Reporter):
         "Title underline too short.",
     }
 
+    def __init__(self, source, report_level, halt_level, debug=False, error_handler="backslashreplace", ignore_errors=False):
+        super().__init__(source, report_level, halt_level, debug, error_handler)
+        self.ignore_errors = ignore_errors
+
     def system_message(
         self, level: int, message: str, *children: Any, **kwargs: Any
     ) -> docutils.nodes.system_message:
@@ -281,6 +285,11 @@ class IgnoreMessagesReporter(docutils.utils.Reporter):
         try:
             msg = super().system_message(level, message, *children, **kwargs)
         except Exception as e:
+            if not self.ignore_errors:
+                # If we're not ignoring errors, re-raise
+                self.halt_level = orig_level
+                raise
+            
             print(f"Error in system_message: {e}")
             self.halt_level = docutils.utils.Reporter.SEVERE_LEVEL + 1
             # Create a basic system message since the original one failed
@@ -763,7 +772,7 @@ def format_node(width: Optional[int], node: docutils.nodes.Node) -> str:
     return ret
 
 
-def parse_string(s: str) -> docutils.nodes.document:
+def parse_string(s: str, ignore_errors: bool = False) -> docutils.nodes.document:
     parser = docutils.parsers.rst.Parser()
     settings = docutils.frontend.OptionParser(
         components=[docutils.parsers.rst.Parser]
@@ -772,7 +781,12 @@ def parse_string(s: str) -> docutils.nodes.document:
     settings.halt_level = docutils.utils.Reporter.WARNING_LEVEL
     settings.file_insertion_enabled = False
     doc = docutils.utils.new_document("", settings=settings)
-    doc.reporter = IgnoreMessagesReporter("", settings.report_level, settings.halt_level)
+    doc.reporter = IgnoreMessagesReporter(
+        "", 
+        settings.report_level, 
+        settings.halt_level, 
+        ignore_errors=ignore_errors
+    )
     parser.parse(s, doc)
     preproc(doc)
 
